@@ -37,32 +37,6 @@ async function _patchToasts () {
   forceUpdateElement(`.${app}`);
 }
 
-function _welcomeNewUser () {
-  powercord.api.notices.sendAnnouncement('pc-first-welcome', {
-    color: 'green',
-    message: Messages.REPLUGGED_NOTICES_WELCOME_NEW_USER,
-    button: {
-      text: Messages.REPLUGGED_NOTICES_JOIN_SERVER_BUTTON,
-      onClick: async () => {
-        const store = await getModule([ 'getGuilds' ]);
-        if (store.getGuilds()[GUILD_ID]) {
-          const channel = await getModule([ 'getLastSelectedChannelId' ]);
-          const router = await getModule([ 'transitionTo' ]);
-          // eslint-disable-next-line new-cap
-          router.transitionTo(Routes.CHANNEL(GUILD_ID, channel.getChannelId(GUILD_ID)));
-        } else {
-          const windowManager = await getModule([ 'flashFrame', 'minimize' ]);
-          const { INVITE_BROWSER: { handler: popInvite } } = await getModule([ 'INVITE_BROWSER' ]);
-          const oldMinimize = windowManager.minimize;
-          windowManager.minimize = () => void 0;
-          popInvite({ args: { code: DISCORD_INVITE } });
-          windowManager.minimize = oldMinimize;
-        }
-      }
-    }
-  });
-}
-
 module.exports = async () => {
   loadStyle(join(__dirname, 'style.scss'));
 
