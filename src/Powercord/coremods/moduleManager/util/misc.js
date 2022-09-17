@@ -1,4 +1,10 @@
 const { WEBSITE } = require('powercord/constants');
+const Modal = require('../../moduleManager/components/ConfirmModal');
+const { React, i18n: { Messages } } = require('powercord/webpack');
+const { open: openModal, close: closeModal } = require('powercord/modal');
+
+const fs = require('fs');
+const path = require('path');
 
 const INSTALLER_PATH_REGEX = /^\/install\?url=(.*)/;
 const REPO_URL_REGEX = /https?:\/\/(?:www\.)?github\.com\/([^/\s>]+)\/([^/\s>]+)(?:\/tree\/([^/\s>]+))?\/?(?=\s|$)/;
@@ -41,4 +47,62 @@ exports.resp = (success, description) => ({
     title: success ? 'Success' : 'Error',
     description
   }
+});
+
+exports.formatGitURL = (url) => url
+  .replace('.git', '')
+  .replace('git@github.com:', 'https://github.com/')
+  .replace('url = ', '');
+
+exports.getWebURL = (entity, type = null) => {
+  if (typeof entity === 'string') {
+    if (type) {
+      entity = type === 'plugin' ? powercord.pluginManager.get(entity) : powercord.styleManager.get(entity);
+    } else {
+      return null;
+    }
+  }
+  let data = fs.readFileSync(path.resolve(entity.entityPath, '.git', 'config'), 'utf8');
+  data = data.split('\n').map(e => e.trim());
+
+  let url = '';
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].startsWith('url = ')) {
+      url = exports.formatGitURL(data[i]);
+      break;
+    }
+  }
+  return url;
+};
+
+exports.promptUninstall = (id, isPlugin) => new Promise((resolve) => {
+  const manager = isPlugin ? powercord.pluginManager : powercord.styleManager;
+
+  openModal(() => React.createElement(Modal, {
+    red: true,
+    header: Messages.REPLUGGED_COMMAND_UNINSTALL_MODAL_HEADER.format({ id }),
+    desc: Messages.REPLUGGED_COMMAND_UNINSTALL_MODAL_DESC.format({ id }),
+    onConfirm: () => {
+      manager.uninstall(id);
+
+      powercord.api.notices.sendToast(`PDPluginUninstalled-${id}`, {
+        header: Messages.REPLUGGED_COMMAND_UNINSTALL_TOAST_HEADER.format({
+          type: isPlugin ? Messages.REPLUGGED_PLUGIN : Messages.REPLUGGED_THEME
+        }),
+        content: Messages.REPLUGGED_COMMAND_UNINSTALL_TOAST_CONTENT.format({ id }),
+        type: 'info',
+        timeout: 10e3,
+        buttons: [ {
+          text: Messages.REPLUGGED_BUTTON_GOT_IT,
+          color: 'green',
+          size: 'medium',
+          look: 'outlined'
+        } ]
+      });
+      resolve(true);
+    },
+    onCancel: () => {
+      closeModal(); resolve(false);
+    }
+  }));
 });

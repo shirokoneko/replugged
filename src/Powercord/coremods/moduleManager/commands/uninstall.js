@@ -1,8 +1,6 @@
-const Modal = require('../components/ConfirmModal');
-const { React, i18n: { Messages } } = require('powercord/webpack');
-const { open: openModal, close: closeModal } = require('powercord/modal');
+const { i18n: { Messages } } = require('powercord/webpack');
 
-const { resp } = require('../util');
+const { resp, promptUninstall } = require('../util');
 
 module.exports = {
   command: 'uninstall',
@@ -18,33 +16,7 @@ module.exports = {
       return resp(false, Messages.REPLUGGED_ERROR_PLUGIN_THEME_IS_IN_USE.format({ id }));
     }
 
-    const manager = isPlugin ? powercord.pluginManager : powercord.styleManager;
-
-
-    openModal(() => React.createElement(Modal, {
-      red: true,
-      header: Messages.REPLUGGED_COMMAND_UNINSTALL_MODAL_HEADER.format({ id }),
-      desc: Messages.REPLUGGED_COMMAND_UNINSTALL_MODAL_DESC.format({ id }),
-      onConfirm: () => {
-        manager.uninstall(id);
-
-        powercord.api.notices.sendToast(`PDPluginUninstalled-${id}`, {
-          header: Messages.REPLUGGED_COMMAND_UNINSTALL_TOAST_HEADER.format({
-            type: isPlugin ? Messages.REPLUGGED_PLUGIN : Messages.REPLUGGED_THEME
-          }),
-          content: Messages.REPLUGGED_COMMAND_UNINSTALL_TOAST_CONTENT.format({ id }),
-          type: 'info',
-          timeout: 10e3,
-          buttons: [ {
-            text: Messages.REPLUGGED_BUTTON_GOT_IT,
-            color: 'green',
-            size: 'medium',
-            look: 'outlined'
-          } ]
-        });
-      },
-      onCancel: () => closeModal()
-    }));
+    promptUninstall(id, isPlugin);
   },
 
   autocomplete (args) {
@@ -64,15 +36,15 @@ module.exports = {
     }
 
     return {
-      header: 'replugged entities list',
+      header: Messages.REPLUGGED_COMMAND_AUTOCOMPLETE_ENTITY_LIST,
       commands: [
         ...plugins.map(plugin => ({
           command: plugin.entityID,
-          description: `Plugin - ${plugin.manifest.description}`
+          description: Messages.REPLUGGED_COMMAND_AUTOCOMPLETE_PLUGIN.format({ description: plugin.manifest.description })
         })),
         ...themes.map(theme => ({
           command: theme.entityID,
-          description: `Theme - ${theme.manifest.description}`
+          description: Messages.REPLUGGED_COMMAND_AUTOCOMPLETE_THEME.format({ description: theme.manifest.description })
         }))
       ]
     };
